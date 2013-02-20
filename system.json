@@ -1,0 +1,11 @@
+{
+  "name": "gobo",
+  "description": "Gobo Eiffel",
+  "version": "3.10.0-alpha",
+  "engines": {
+    "ise": ">=7.0.x",
+    "ge": ">=3.10.x"
+  },
+  "os" : [ "windows", "unix" ],
+  "env": "GOBO"
+}
