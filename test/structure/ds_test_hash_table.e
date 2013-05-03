@@ -242,6 +242,7 @@ feature -- Test
 			a_table1.force_last (1, "one")
 			a_table1.force_last (2, "two")
 			assert ("not_has_void", not a_table1.has_void)
+			a_table1.search ("one")
 		end
 
 feature {NONE} -- Implementation
