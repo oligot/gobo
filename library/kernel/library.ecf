@@ -4,7 +4,7 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
 	xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-9-0 http://www.eiffel.com/developers/xml/configuration-1-9-0.xsd"
 	name="kernel"
-	uuid="6D7FF712-BBA5-4AC0-AABF-2D9880493A23"
+	uuid="E1FFE100-60B0-0002-0001-000020130812"
 	library_target="kernel">
 
 	<description>
@@ -39,11 +39,6 @@
 				<custom name="GOBO_EIFFEL" value="ge"/>
 			</condition>
 		</library>
-
-		<assembly name="eiffelsoftware_runtime" location="$ISE_EIFFEL\studio\spec\$ISE_PLATFORM\lib\EiffelSoftware.Runtime.dll"/>
-		<assembly name="mscorlib" location="$ISE_DOTNET_FRAMEWORK\mscorlib.dll"/>
-		<assembly name="system_" location="$ISE_DOTNET_FRAMEWORK\System.dll" prefix="SYSTEM_DLL_"/>
-		<assembly name="system_xml" location="$ISE_DOTNET_FRAMEWORK\System.Xml.dll" prefix="XML_"/>
 
 		<cluster name="kernel" location="./" recursive="true">
 			<file_rule>

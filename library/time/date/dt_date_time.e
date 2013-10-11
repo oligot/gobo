@@ -258,13 +258,13 @@ feature -- Element change
 			-- `a_duration.minute', `a_duration.second' and
 			-- `a_duration.millisecond'.)
 		local
-			ms, d: INTEGER
+			ms: INTEGER
 		do
+			add_years_months_days (a_duration.year, a_duration.month, a_duration.day)
 			ms := a_duration.millisecond_count
 			if ms /= 0 then
 				add_milliseconds (ms)
 			end
-			add_years_months_days (a_duration.year, a_duration.month, a_duration.day + d)
 		end
 
 	add_hours (h: INTEGER)
