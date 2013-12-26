@@ -5,7 +5,7 @@ note
 		"Geyacc tasks"
 
 	library: "Gobo Eiffel Ant"
-	copyright: "Copyright (c) 2001-2002, Sven Ehrke and others"
+	copyright: "Copyright (c) 2001-2013, Sven Ehrke and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -34,6 +34,10 @@ feature {NONE} -- Initialization
 		do
 			Precursor {GEANT_TASK} (a_project, an_xml_element)
 
+				-- rescue_on_abort:
+			if has_attribute (Rescue_on_abort_attribute_name) then
+				command.set_rescue_on_abort (boolean_value (Rescue_on_abort_attribute_name))
+			end
 				-- separate_actions:
 			if has_attribute (Separate_actions_attribute_name) then
 				command.set_separate_actions (boolean_value (Separate_actions_attribute_name))
@@ -45,13 +49,9 @@ feature {NONE} -- Initialization
 					command.set_verbose_filename (a_value)
 				end
 			end
-				-- old_typing:
-			if has_attribute (Old_typing_attribute_name) then
-				command.set_old_typing (boolean_value (Old_typing_attribute_name))
-			end
 				-- new_typing:
 			if has_attribute (New_typing_attribute_name) then
-				command.set_new_typing (boolean_value (New_typing_attribute_name))
+				-- The default.
 			end
 				-- tokens_classname:
 			if has_attribute (Tokens_classname_attribute_name) then
@@ -96,6 +96,15 @@ feature -- Access
 
 feature {NONE} -- Constants
 
+	Rescue_on_abort_attribute_name: STRING
+			-- Name of xml attribute for rescue_on_abort
+		once
+			Result := "rescue_on_abort"
+		ensure
+			attribute_name_not_void: Result /= Void
+			atribute_name_not_empty: Result.count > 0
+		end
+		
 	Separate_actions_attribute_name: STRING
 			-- Name of xml attribute for separate_actions
 		once
@@ -145,15 +154,6 @@ feature {NONE} -- Constants
 			-- Name of xml attribute for input_filename
 		once
 			Result := "input"
-		ensure
-			attribute_name_not_void: Result /= Void
-			atribute_name_not_empty: Result.count > 0
-		end
-
-	Old_typing_attribute_name: STRING
-			-- Name of xml attribute for 'old_typing'
-		once
-			Result := "old_typing"
 		ensure
 			attribute_name_not_void: Result /= Void
 			atribute_name_not_empty: Result.count > 0

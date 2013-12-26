@@ -5,7 +5,7 @@ note
 		"Parser generators"
 
 	library: "Gobo Eiffel Parse Library"
-	copyright: "Copyright (c) 1999-2012, Eric Bezault and others"
+	copyright: "Copyright (c) 1999-2013, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -51,9 +51,6 @@ feature {NONE} -- Initialization
 
 feature -- Status report
 
-	old_typing: BOOLEAN
-			-- Does the generated parser use the old typing mechanism?
-
 	line_pragma: BOOLEAN
 			-- Should line pragma be generated?
 
@@ -79,14 +76,6 @@ feature -- Setting
 
 feature -- Status setting
 
-	set_old_typing (b: BOOLEAN)
-			-- Set `old_typing' to `b'.
-		do
-			old_typing := b
-		ensure
-			old_typing_set: old_typing = b
-		end
-
 	set_line_pragma (b: BOOLEAN)
 			-- Set `line_pragma' to `b'.
 		do
@@ -97,11 +86,13 @@ feature -- Status setting
 
 feature -- Generation
 
-	print_parser (tokens_needed, actions_separated: BOOLEAN; a_file: KI_TEXT_OUTPUT_STREAM)
+	print_parser (tokens_needed, actions_separated, a_rescue_on_abort: BOOLEAN; a_file: KI_TEXT_OUTPUT_STREAM)
 			-- Print code for corresponding parser to `a_file'.
 			-- Print the token codes with the parser class text
 			-- if `tokens_needed' is true, and the semantic actions
 			-- in individual routines if `actions_separated' is true.
+			-- Print a rescue clause to catch abort exceptions in
+			-- action routines if `a_rescue_on_abort' is true.
 		require
 			a_file_not_void: a_file /= Void
 			a_file_open_write: a_file.is_open_write
@@ -115,27 +106,25 @@ feature -- Generation
 			a_file.put_string ("feature {NONE} -- Implementation%N%N")
 			print_build_parser_tables (a_file)
 			a_file.put_new_line
-			if not old_typing then
-				print_create_value_stacks (a_file)
-				a_file.put_new_line
-				print_init_value_stacks (a_file)
-				a_file.put_new_line
-				print_clear_value_stacks (a_file)
-				a_file.put_new_line
-				print_push_last_value (a_file)
-				a_file.put_new_line
-				print_push_error_value (a_file)
-				a_file.put_new_line
-				print_pop_last_value (a_file)
-				a_file.put_new_line
-			end
+			print_create_value_stacks (a_file)
+			a_file.put_new_line
+			print_init_value_stacks (a_file)
+			a_file.put_new_line
+			print_clear_value_stacks (a_file)
+			a_file.put_new_line
+			print_push_last_value (a_file)
+			a_file.put_new_line
+			print_push_error_value (a_file)
+			a_file.put_new_line
+			print_pop_last_value (a_file)
+			a_file.put_new_line
 			print_dummy_feature (a_file)
 			a_file.put_new_line
 			a_file.put_string ("feature {NONE} -- Semantic actions%N%N")
 			if actions_separated then
-				print_separated_actions (a_file)
+				print_separated_actions (a_rescue_on_abort, a_file)
 			else
-				print_actions (a_file)
+				print_actions (a_rescue_on_abort, a_file)
 			end
 			a_file.put_new_line
 			if actions_separated then
@@ -145,13 +134,8 @@ feature -- Generation
 			end
 			a_file.put_string ("%Nfeature {NONE} -- Table templates%N%N")
 			print_eiffel_tables (a_file)
-			if old_typing then
-				old_print_conversion_routines (a_file)
-				a_file.put_new_line
-			else
-				a_file.put_string ("%Nfeature {NONE} -- Semantic value stacks%N%N")
-				print_stack_declarations (a_file)
-			end
+			a_file.put_string ("%Nfeature {NONE} -- Semantic value stacks%N%N")
+			print_stack_declarations (a_file)
 			a_file.put_string ("feature {NONE} -- Constants%N%N")
 			print_constants (a_file)
 			a_file.put_string ("%Nfeature -- User-defined features%N%N")
@@ -172,7 +156,7 @@ feature -- Generation
 				%%Tdescription: %"Parser token codes%"%N%
 				%%Tgenerator: %"geyacc version ")
 			a_file.put_string (version)
-			a_file.put_string ("%"%N%Nclass ")
+			a_file.put_string ("%"%N%Ndeferred class ")
 			a_file.put_string (class_name)
 			a_file.put_string ("%N%Ninherit%N%N%
 				%%TYY_PARSER_TOKENS%N")
@@ -192,12 +176,10 @@ feature {NONE} -- Generation
 			tokens: DS_ARRAYED_LIST [PR_TOKEN]
 			a_token: PR_TOKEN
 			a_name: STRING
-			a_literal: STRING
+			a_literal: detachable STRING
 			i, nb: INTEGER
 		do
-			if not old_typing then
-				print_last_values (a_file)
-			end
+			print_last_values (a_file)
 			a_file.put_new_line
 			tokens := machine.grammar.tokens
 			nb := tokens.count
@@ -332,7 +314,7 @@ feature {NONE} -- Generation
 			a_file_not_void: a_file /= Void
 			a_file_open_write: a_file.is_open_write
 		local
-			eiffel_code: STRING
+			eiffel_code: detachable STRING
 		do
 			eiffel_code := machine.grammar.eiffel_code
 			if eiffel_code /= Void then
@@ -367,10 +349,25 @@ feature {NONE} -- Generation
 		require
 			a_file_not_void: a_file /= Void
 			a_file_open_write: a_file.is_open_write
+		local
+			types: DS_ARRAYED_LIST [PR_TYPE]
+			a_type: PR_TYPE
+			i, nb: INTEGER
 		do
 			a_file.put_line ("%Tyy_create_value_stacks")
 			a_file.put_line ("%T%T%T-- Create value stacks.")
 			a_file.put_line ("%T%Tdo")
+			types := machine.grammar.types
+			nb := types.count
+			from
+				i := 1
+			until
+				i > nb
+			loop
+				a_type := types.item (i)
+				a_type.print_create_yyvs (3, a_file)
+				i := i + 1
+			end
 			a_file.put_line ("%T%Tend")
 		end
 
@@ -420,21 +417,6 @@ feature {NONE} -- Generation
 			a_file.put_line ("%Tyy_clear_value_stacks")
 			a_file.put_line ("%T%T%T-- Clear objects in semantic value stacks so that")
 			a_file.put_line ("%T%T%T-- they can be collected by the garbage collector.")
-			if nb > 0 then
-				a_file.put_line ("%T%Tlocal")
-				from
-					i := 1
-				until
-					i > nb
-				loop
-					a_type := types.item (i)
-					a_file.put_string ("%T%T%Tl_yyvs")
-					a_file.put_integer (a_type.id)
-					a_file.put_string ("_default_item: ")
-					a_file.put_line (a_type.name)
-					i := i + 1
-				end
-			end
 			a_file.put_line ("%T%Tdo")
 			from
 				i := 1
@@ -726,9 +708,11 @@ feature {NONE} -- Generation
 			end
 		end
 
-	print_actions (a_file: KI_TEXT_OUTPUT_STREAM)
+	print_actions (a_rescue_on_abort: BOOLEAN; a_file: KI_TEXT_OUTPUT_STREAM)
 			-- Print code for actions to `a_file'.
 			-- Print all actions in one routine.
+			-- Print a rescue clause to catch abort exceptions
+			-- if `a_rescue_on_abort' is true.
 		require
 			a_file_not_void: a_file /= Void
 			a_file_open_write: a_file.is_open_write
@@ -743,6 +727,10 @@ feature {NONE} -- Generation
 		do
 			a_file.put_line ("%Tyy_do_action (yy_act: INTEGER)")
 			a_file.put_line ("%T%T%T-- Execute semantic action.")
+			a_file.put_line ("%T%Tlocal")
+			if a_rescue_on_abort then
+				a_file.put_line ("%T%T%Tyy_retried: BOOLEAN")
+			end
 			nb_types := machine.grammar.types.count
 			create types.make (nb_types)
 			rules := machine.grammar.rules
@@ -755,19 +743,16 @@ feature {NONE} -- Generation
 				loop
 					a_rule := rules.item (i)
 					a_type := a_rule.lhs.type
-					if not old_typing or not a_type.name.is_equal ("ANY") then
-						types.put (a_type)
-						if types.count = nb_types then
-								-- All types have already been registered.
-								-- Jump out of the loop.
-							i := nb + 1
-						end
+					types.put (a_type)
+					if types.count = nb_types then
+							-- All types have already been registered.
+							-- Jump out of the loop.
+						i := nb + 1
 					end
 					i := i + 1
 				end
 			end
 			if not types.is_empty then
-				a_file.put_line ("%T%Tlocal")
 				a_cursor := types.new_cursor
 				from
 					a_cursor.start
@@ -780,7 +765,10 @@ feature {NONE} -- Generation
 				end
 			end
 			a_file.put_line ("%T%Tdo")
-			a_file.put_line ("%T%T%Tinspect yy_act")
+			if a_rescue_on_abort then
+				a_file.put_line ("%T%T%Tif not yy_retried then")
+			end
+			a_file.put_line ("%T%T%T%Tinspect yy_act")
 			from
 				i := 1
 			until
@@ -790,27 +778,33 @@ feature {NONE} -- Generation
 				a_file.put_string ("when ")
 				a_file.put_integer (a_rule.id)
 				a_file.put_line (" then")
-				if old_typing then
-					a_rule.old_print_action (input_filename, line_pragma, a_file)
-				else
-					a_rule.print_action (input_filename, line_pragma, a_file)
-				end
+				a_rule.print_action (input_filename, line_pragma, a_file)
 				i := i + 1
 			end
-			a_file.put_line ("%T%T%Telse")
-			a_file.put_line ("%T%T%T%Tdebug (%"GEYACC%")")
-			a_file.put_line ("%T%T%T%T%Tstd.error.put_string (%"Error in parser: unknown rule id: %")")
-			a_file.put_line ("%T%T%T%T%Tstd.error.put_integer (yy_act)")
-			a_file.put_line ("%T%T%T%T%Tstd.error.put_new_line")
+			a_file.put_line ("%T%T%T%Telse")
+			a_file.put_line ("%T%T%T%T%Tdebug (%"GEYACC%")")
+			a_file.put_line ("%T%T%T%T%T%Tstd.error.put_string (%"Error in parser: unknown rule id: %")")
+			a_file.put_line ("%T%T%T%T%T%Tstd.error.put_integer (yy_act)")
+			a_file.put_line ("%T%T%T%T%T%Tstd.error.put_new_line")
+			a_file.put_line ("%T%T%T%T%Tend")
+			a_file.put_line ("%T%T%T%T%Tabort")
 			a_file.put_line ("%T%T%T%Tend")
-			a_file.put_line ("%T%T%T%Tabort")
-			a_file.put_line ("%T%T%Tend")
+			if a_rescue_on_abort then
+				a_file.put_line ("%T%T%Tend")
+				a_file.put_line ("%T%Trescue")
+				a_file.put_line ("%T%T%Tif yy_parsing_status = yyAborted then")
+				a_file.put_line ("%T%T%T%Tyy_retried := True")
+				a_file.put_line ("%T%T%T%Tretry")
+				a_file.put_line ("%T%T%Tend")
+			end
 			a_file.put_line ("%T%Tend")
 		end
 
-	print_separated_actions (a_file: KI_TEXT_OUTPUT_STREAM)
+	print_separated_actions (a_rescue_on_abort: BOOLEAN; a_file: KI_TEXT_OUTPUT_STREAM)
 			-- Print code for actions to `a_file'.
 			-- Print each action into an individual routine.
+			-- Print a rescue clause to catch abort exceptions
+			-- if `a_rescue_on_abort' is true.
 		require
 			a_file_not_void: a_file /= Void
 			a_file_open_write: a_file.is_open_write
@@ -969,16 +963,24 @@ feature {NONE} -- Generation
 				a_file.put_string (input_filename)
 				a_file.put_line ("%"")
 				a_type := a_rule.lhs.type
-				if not old_typing or not a_type.name.is_equal ("ANY") then
-					a_file.put_line ("%T%Tlocal")
-					a_type.print_dollar_dollar_declaration (a_file)
-					a_file.put_new_line
+				a_file.put_line ("%T%Tlocal")
+				if a_rescue_on_abort then
+					a_file.put_line ("%T%T%Tyy_retried: BOOLEAN")
 				end
+				a_type.print_dollar_dollar_declaration (a_file)
+				a_file.put_new_line
 				a_file.put_line ("%T%Tdo")
-				if old_typing then
-					a_rule.old_print_action (input_filename, line_pragma, a_file)
-				else
-					a_rule.print_action (input_filename, line_pragma, a_file)
+				if a_rescue_on_abort then
+					a_file.put_line ("%T%T%Tif not yy_retried then")
+				end
+				a_rule.print_action (input_filename, line_pragma, a_file)
+				if a_rescue_on_abort then
+					a_file.put_line ("%T%T%Tend")
+					a_file.put_line ("%T%Trescue")
+					a_file.put_line ("%T%T%Tif yy_parsing_status = yyAborted then")
+					a_file.put_line ("%T%T%T%Tyy_retried := True")
+					a_file.put_line ("%T%T%T%Tretry")
+					a_file.put_line ("%T%T%Tend")
 				end
 				a_file.put_line ("%T%Tend")
 				i := i + 1
@@ -995,7 +997,7 @@ feature {NONE} -- Generation
 			i, nb: INTEGER
 			states: DS_ARRAYED_LIST [PR_STATE]
 			a_state: PR_STATE
-			an_action: PR_ERROR_ACTION
+			an_action: detachable PR_ERROR_ACTION
 		do
 			a_file.put_line ("%Tyy_do_error_action (yy_act: INTEGER)")
 			a_file.put_line ("%T%T%T-- Execute error action.")
@@ -1064,7 +1066,7 @@ feature {NONE} -- Generation
 			inspect_size: INTEGER
 			states: DS_ARRAYED_LIST [PR_STATE]
 			a_state: PR_STATE
-			an_action: PR_ERROR_ACTION
+			an_action: detachable PR_ERROR_ACTION
 		do
 				-- SmartEiffel generates C code which triggers a
 				-- stack overflow of the C compiler if there are
@@ -1238,35 +1240,6 @@ feature {NONE} -- Generation
 					a_file.put_line ("%T%Tend")
 				end
 				i := i + 1
-			end
-		end
-
-	old_print_conversion_routines (a_file: KI_TEXT_OUTPUT_STREAM)
-			-- Print code for type conversion routines to `a_file'.
-		require
-			a_file_not_void: a_file /= Void
-			a_file_open_write: a_file.is_open_write
-		local
-			types: DS_ARRAYED_LIST [PR_TYPE]
-			a_type: PR_TYPE
-			i, nb: INTEGER
-		do
-			types := machine.grammar.types
-			if not types.is_empty then
-				a_file.put_string ("%Nfeature {NONE} -- Conversion%N%N")
-				nb := types.count
-				from
-					i := 1
-				until
-					i > nb
-				loop
-					a_type := types.item (i)
-					if a_type.is_used then
-						a_type.old_print_conversion_routine (a_file)
-						a_file.put_character ('%N')
-					end
-					i := i + 1
-				end
 			end
 		end
 
@@ -1856,7 +1829,7 @@ feature {NONE} -- Building
 		local
 			transitions: DS_LINKED_LIST [PR_TRANSITION]
 			a_cursor: DS_LINKED_LIST_CURSOR [PR_TRANSITION]
-			a_transition: PR_TRANSITION
+			a_transition: detachable PR_TRANSITION
 			state_count: ARRAY [INTEGER]
 			default_state: INTEGER
 			state_id: INTEGER

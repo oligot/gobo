@@ -6,7 +6,7 @@ note
 		"Parsers for regular expressions"
 
 	library: "Gobo Eiffel Lexical Library"
-	copyright: "Copyright (c) 1999-2004, Eric Bezault and others"
+	copyright: "Copyright (c) 1999-2013, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -17,7 +17,9 @@ inherit
 
 	LX_LEX_PARSER_SKELETON
 		redefine
-			last_integer_value
+			last_integer_value,
+			last_string_value,
+			last_lx_symbol_class_value
 		end
 
 	LX_REGEXP_SCANNER
@@ -26,7 +28,9 @@ inherit
 			make_from_description as make_lex_scanner_from_description,
 			reset as reset_lex_scanner
 		redefine
-			last_integer_value
+			last_integer_value,
+			last_string_value,
+			last_lx_symbol_class_value
 		end
 
 create
@@ -129,6 +133,7 @@ Regular_expression: Series
 		}
 	| Regular_expression '|'
 		{
+			$$ := $1
 			old_regexp_lines.force (regexp_line)
 			old_regexp_columns.force (regexp_column)
 			old_regexp_counts.force (regexp_count)
@@ -308,5 +313,11 @@ feature {NONE} -- Access
 
 	last_integer_value: INTEGER
 			-- Last semantic value of type INTEGER
+
+	last_string_value: STRING
+			-- Last semantic value of type STRING
+
+	last_lx_symbol_class_value: LX_SYMBOL_CLASS
+			-- Last semantic value of type LX_SYMBOL_CLASS
 
 end

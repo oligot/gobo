@@ -5,7 +5,7 @@ note
 		"DFA equipped with lexical analyzer generator"
 
 	library: "Gobo Eiffel Lexical Library"
-	copyright: "Copyright (c) 1999-2011, Eric Bezault and others"
+	copyright: "Copyright (c) 1999-2013, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -43,10 +43,12 @@ feature {NONE} -- Initialization
 			a_description_not_void: a_description /= Void
 		local
 			max: INTEGER
-			equiv_classes: LX_EQUIVALENCE_CLASSES
+			equiv_classes: detachable LX_EQUIVALENCE_CLASSES
+			l_yy_ec: ARRAY [INTEGER]
 		do
-			input_filename := a_description.input_filename
-			if input_filename = Void then
+			if attached a_description.input_filename as l_input_filename then
+				input_filename := l_input_filename
+			else
 				input_filename := Default_input_filename
 			end
 			characters_count := a_description.characters_count
@@ -67,8 +69,9 @@ feature {NONE} -- Initialization
 			max := characters_count
 			equiv_classes := a_description.equiv_classes
 			if equiv_classes /= Void and then equiv_classes.built then
-				yy_ec := equiv_classes.to_array (0, max)
-				yyNull_equiv_class := yy_ec.item (max)
+				l_yy_ec := equiv_classes.to_array (0, max)
+				yy_ec := l_yy_ec
+				yyNull_equiv_class := l_yy_ec.item (max)
 				max := equiv_classes.count
 			else
 				yyNull_equiv_class := max
@@ -517,7 +520,7 @@ feature {NONE} -- Generation
 			a_file_open_write: a_file.is_open_write
 		local
 			i, nb: INTEGER
-			rule: LX_RULE
+			rule: detachable LX_RULE
 			actions: DS_ARRAYED_LIST [DS_PAIR [DP_COMMAND, DS_LINKED_LIST [LX_RULE]]]
 			action: DP_COMMAND
 			j, nb_actions: INTEGER
@@ -670,8 +673,8 @@ feature {NONE} -- Generation
 			a_file_not_void: a_file /= Void
 			a_file_open_write: a_file.is_open_write
 		do
-			if eiffel_code /= Void then
-				a_file.put_string (eiffel_code)
+			if attached eiffel_code as l_eiffel_code then
+				a_file.put_string (l_eiffel_code)
 			end
 		end
 
@@ -690,6 +693,15 @@ feature {NONE} -- Generation
 			a_file.put_character ('%T')
 			a_file.put_string (a_name)
 			a_file.put_string (": SPECIAL [INTEGER]%N")
+			if a_name.ends_with ("_template") then
+				a_file.put_string ("%T%T%T-- Template for `")
+				a_file.put_string (a_name.substring (1, a_name.count - 9))
+				a_file.put_string ("%'%N")
+			else
+				a_file.put_string ("%T%T%T-- `")
+				a_file.put_string (a_name)
+				a_file.put_string ("%'%N")
+			end
 			if array_size = 0 then
 				nb := 1
 			else
@@ -822,21 +834,21 @@ feature {NONE} -- Generation
 			nb := characters_count
 			transitions := a_state.transitions
 			create has_transition.make_filled (False, 0, nb - 1)
-			if yy_ec /= Void then
+			if attached yy_ec as l_yy_ec then
 					-- Equivalence classes are used.
 				from
 					i := 1
 				until
 					i >= nb
 				loop
-					j := yy_ec.item (i)
+					j := l_yy_ec.item (i)
 					if transitions.valid_label (j) then
 						has_transition.put (transitions.target (j) /= Void, i)
 					end
 					i := i + 1
 				end
 					-- Null transition.
-				j := yy_ec.item (nb)
+				j := l_yy_ec.item (nb)
 				if transitions.valid_label (j) then
 					has_transition.put (transitions.target (j) /= Void, 0)
 				end
@@ -1029,7 +1041,7 @@ feature {NONE} -- Access
 	input_filename: STRING
 			-- Input filename
 
-	eiffel_code: STRING
+	eiffel_code: detachable STRING
 			-- User-defined Eiffel code
 
 	eiffel_header: DS_ARRAYED_LIST [STRING]

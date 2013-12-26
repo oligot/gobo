@@ -6,7 +6,7 @@ note
 		"Parsers for wildcards"
 
 	library: "Gobo Eiffel Lexical Library"
-	copyright: "Copyright (c) 2001-2003, Eric Bezault and others"
+	copyright: "Copyright (c) 2001-2013, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -17,7 +17,9 @@ inherit
 
 	LX_LEX_PARSER_SKELETON
 		redefine
-			last_integer_value
+			last_integer_value,
+			last_string_value,
+			last_lx_symbol_class_value
 		end
 
 	LX_WILDCARD_SCANNER
@@ -26,7 +28,9 @@ inherit
 			make_from_description as make_lex_scanner_from_description,
 			reset as reset_lex_scanner
 		redefine
-			last_integer_value
+			last_integer_value,
+			last_string_value,
+			last_lx_symbol_class_value
 		end
 
 create
@@ -212,13 +216,19 @@ feature {NONE} -- Access
 	last_integer_value: INTEGER
 			-- Last semantic value of type INTEGER
 
+	last_string_value: STRING
+			-- Last semantic value of type STRING
+
+	last_lx_symbol_class_value: LX_SYMBOL_CLASS
+			-- Last semantic value of type LX_SYMBOL_CLASS
+
 feature {NONE} -- Implementation
 
 	question_character_class: LX_SYMBOL_CLASS
 			-- "?" character class (i.e. all characters except /)
 		local
 			question_string: STRING
-			equiv_classes: LX_EQUIVALENCE_CLASSES
+			equiv_classes: detachable LX_EQUIVALENCE_CLASSES
 		do
 			question_string := "?"
 			character_classes.search (question_string)

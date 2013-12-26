@@ -6,7 +6,7 @@ note
 		%analyzer generators such as 'gelex'"
 
 	library: "Gobo Eiffel Lexical Library"
-	copyright: "Copyright (c) 1999-2012, Eric Bezault and others"
+	copyright: "Copyright (c) 1999-2013, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -37,6 +37,8 @@ feature {NONE} -- Initialization
 		do
 			create description.make
 			make_with_buffer (Empty_buffer)
+			last_string_value := ""
+			create last_lx_symbol_class_value.make (0)
 			error_handler := handler
 			create name_definitions.make_map (Initial_max_nb_names)
 			name_definitions.set_key_equality_tester (string_equality_tester)
@@ -57,6 +59,8 @@ feature {NONE} -- Initialization
 		do
 			description := a_description
 			make_with_buffer (Empty_buffer)
+			last_string_value := ""
+			create last_lx_symbol_class_value.make (0)
 			error_handler := handler
 			create name_definitions.make_map (Initial_max_nb_names)
 			name_definitions.set_key_equality_tester (string_equality_tester)
@@ -75,6 +79,8 @@ feature -- Initialization
 			-- Reset scanner before scanning next input.
 		do
 			reset_compressed_scanner_skeleton
+			last_string_value := ""
+			create last_lx_symbol_class_value.make (0)
 			description.reset
 			name_definitions.wipe_out
 			character_classes.wipe_out
@@ -127,11 +133,17 @@ feature {NONE} -- Access
 			-- Number of characters { not-yet-balanced
 			-- in semantic actions
 
-	last_string: STRING
+	last_string: detachable STRING
 			-- Last string which has been read
 
 	last_integer_value: INTEGER
 			-- Last semantic value of type INTEGER
+
+	last_string_value: STRING
+			-- Last semantic value of type STRING
+
+	last_lx_symbol_class_value: LX_SYMBOL_CLASS
+			-- Last semantic value of type LX_SYMBOL_CLASS
 
 feature -- Setting
 

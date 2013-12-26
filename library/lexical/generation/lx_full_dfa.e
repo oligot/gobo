@@ -5,7 +5,7 @@ note
 		"DFA which can generate scanners implemented with full tables"
 
 	library: "Gobo Eiffel Lexical Library"
-	copyright: "Copyright (c) 1999-2011, Eric Bezault and others"
+	copyright: "Copyright (c) 1999-2013, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -95,9 +95,9 @@ feature {NONE} -- Generation
 			-- Print Eiffel code for full tables to `a_file'.
 		do
 			print_eiffel_array ("yy_nxt_template", yy_nxt, a_file)
-			if yy_ec /= Void then
+			if attached yy_ec as l_yy_ec then
 				a_file.put_character ('%N')
-				print_eiffel_array ("yy_ec_template", yy_ec, a_file)
+				print_eiffel_array ("yy_ec_template", l_yy_ec, a_file)
 			end
 			a_file.put_character ('%N')
 			print_eiffel_array ("yy_accept_template", yy_accept, a_file)
@@ -168,7 +168,8 @@ feature {NONE} -- Building
 		local
 			yy_nxt_: ARRAY [INTEGER]
 			i, j, k, nb: INTEGER
-			a_state, target: LX_DFA_STATE
+			a_state: LX_DFA_STATE
+			target: detachable LX_DFA_STATE
 			transitions: LX_TRANSITION_TABLE [LX_DFA_STATE]
 			eob_state_id: INTEGER
 		do
